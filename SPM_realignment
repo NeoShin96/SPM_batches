@@ -22,7 +22,7 @@ cd(fMRI_path)
 fMRI_data_files = dir(fullfile('*.nii'));
 %disp(fMRI_fMRI_data_files)
 
-%%Total number of files
+%%Total number of files in folder
 N = length(fMRI_data_files);
 
 disp("This is the number of files with *.nii")
