@@ -104,7 +104,7 @@ for i = 1:N
     matlabbatch{2}.spm.spatial.preproc.warp.fwhm = 0;
     matlabbatch{2}.spm.spatial.preproc.warp.samp = 3;
     matlabbatch{2}.spm.spatial.preproc.warp.write = [0 1];
-    %Check parent folder
+    %%Check parent folder
     matlabbatch{3}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.parent = {T1_path};
     matlabbatch{3}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.name = 'CorSeg';
     matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(1) = cfg_dep('Coregister: Estimate & Reslice: Resliced Images', substruct('.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','rfiles'));
