@@ -1,0 +1,71 @@
+%%MatLab and SPM12
+%%Realignment of fMRI
+%%Only have folder with all fMRI data, not folder with subfolders. That requires different dir coding.
+
+function Realignment_Batch()
+
+%%Files in folder must contain fMRI with .nii. Note that it only specifies
+%%files with *.nii, so please be careful.
+%%%%%%%%%%Before use, check fMRI_path and matlabbatch...mkdir
+
+fMRI_path = uigetdir(pwd,'Select the folder with only raw fMRI files');
+%fMRI_path = '/the/directory/with/all/the/raw/fMRI/tiles';
+
+cd(fMRI_path)
+
+%%Get the files
+fMRI_data_files = dir(fullfile('*.nii'));
+%disp(fMRI_fMRI_data_files)
+
+%%Total number of files
+N = length(fMRI_data_files);
+
+disp("This is the number of files with *.nii")
+disp(N)
+disp("Now showing files")
+    
+spm_jobman('initcfg');
+spm('defaults','FMRI');
+
+for i = 1:N
+
+    baseFileName = fMRI_data_files(i).name;
+    %zFileName = fullfile(baseFileName);
+    %disp(zFileName);
+
+    fnms{1,:} = [fMRI_path, filesep, baseFileName];
+
+    %%Display the name of the subject
+    %subject_ID = zFileName(1:10);
+    %disp(subject_ID);
+  
+    matlabbatch{1}.spm.util.exp_frames.files = (fnms);
+    %matlabbatch{1}.spm.util.exp_frames.files = {fMRI_data_files(i).name};
+    matlabbatch{1}.spm.util.exp_frames.frames = Inf;
+    matlabbatch{2}.spm.spatial.realign.estwrite.data{1}(1) = cfg_dep('Expand image frames: Expanded filename list.', substruct('.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','files'));
+    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.quality = 0.9;
+    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.sep = 4;
+    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.fwhm = 5;
+    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.rtm = 0;
+    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.interp = 2;
+    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.wrap = [0 0 0];
+    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.weight = '';
+    matlabbatch{2}.spm.spatial.realign.estwrite.roptions.which = [2 1];
+    matlabbatch{2}.spm.spatial.realign.estwrite.roptions.interp = 4;
+    matlabbatch{2}.spm.spatial.realign.estwrite.roptions.wrap = [0 0 0];
+    matlabbatch{2}.spm.spatial.realign.estwrite.roptions.mask = 1;
+    matlabbatch{2}.spm.spatial.realign.estwrite.roptions.prefix = 'r';
+    %%confirm the directory
+    matlabbatch{3}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.parent = {fMRI_path};
+    matlabbatch{3}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.name = 'R';
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(1) = cfg_dep('Realign: Estimate & Reslice: Realignment Param File (Sess 1)', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','sess', '()',{1}, '.','rpfile'));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(2) = cfg_dep('Realign: Estimate & Reslice: Resliced Images (Sess 1)', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','sess', '()',{1}, '.','rfiles'));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(3) = cfg_dep('Realign: Estimate & Reslice: Mean Image', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','rmean'));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.action.moveto(1) = cfg_dep('Make Directory: Make Directory ''R''', substruct('.','val', '{}',{3}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','dir'));
+    
+    %%If error pops up, it will show on this file
+    save spm_realignmenttest matlabbatch;
+    spm_jobman('run', matlabbatch);
+    
+end
+
