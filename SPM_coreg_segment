@@ -1,0 +1,150 @@
+%%Required: MatLab, SPM12, realigned fMRI, and sMRI
+%%Coregistration and Segmentation of sMRI (Step 2, after you do realignment)
+%%Purpose of realignment is obvious. Purpose of segmentation is to retrieve deformation field (and bias-correction, but
+%%for this particular pre-processing, we don't use it. It's good to keep it though for other uses.)
+%%People move. It's impossible to keep them steady. That's why we need deformation field to correct for these distortions.
+%%Only have folders with all fMRI or sMRI data, not folder with subfolders. That requires different dir coding.
+%%%If you have not noticed, this is is a for-loop for multiple subjects (single 4D NIFTI file per subj.) in two folders.
+%%%Although this is not a usual way to process data (normally you have subfolders and output all data into somewhere else)
+%%%This could be useful for people that are disorganized and still have not learned to distribute data using combination
+%%%of .csv and other python scripts, like me!
+%%%Make sure to keep at least one copy of raw data in a separate folder, just in case
+
+function CorSeg_Batch()
+
+%%Need two files: mean from file R (from re-alignment step) and T1
+
+T1_path = uigetdir(pwd,'Select the folder with the T1 files');
+fMRI_path = uigetdir(pwd,'Select the folder with mean fMRI: R folder');
+
+%T1_path = '/the/directory/with/the/raw/T1/files';
+%fMRI_path = '/data2/open_data/ADNI/ADNI3_sMRI_rsfMRI_FDGPET/Categorized/CTRL/fMRI/test2_raw/R';
+
+
+fMRI_data_files = dir(fullfile(fMRI_path, filesep, '*mean*.nii'));
+%disp(fMRI_data_files)
+
+
+N = length(fMRI_data_files);
+
+disp("This is the number of files with *.nii")
+disp(N)
+disp("Now showing files")
+
+spm_jobman('initcfg');
+spm('defaults','FMRI');
+    
+for i = 1:N
+    cd(fMRI_path)
+    %%Display the file that will be used for this run.
+    disp(fMRI_data_files(i));
+    
+    fMRI_baseFileName = fMRI_data_files(i).name;
+    %disp(fMRI_data_files(i).name);
+    fMRI_zFileName = fullfile(fMRI_baseFileName);
+    %disp(fMRI_zFileName);
+    
+    %%Check this and make sure it's specifically subject name "029_S_4444"
+    subject_ID = fMRI_zFileName(5:14);
+    %disp(subject_ID);
+    
+    %%This is to get the full path file of fMRI
+    fnms{1,:} = [fMRI_path, filesep, fMRI_baseFileName];
+    %disp(fnms)
+    
+    cd(T1_path)
+    %%This is to get the file that is associated with the fMRI data
+    T1_data = dir( [T1_path, filesep, subject_ID, '*.nii'] );
+    disp(T1_data);
+    
+    %%Make sure that reference files are () and not {} when using variable as filepath, otherwise SPM gets confused
+    matlabbatch{1}.spm.spatial.coreg.estwrite.ref(1) = (fnms);
+    matlabbatch{1}.spm.spatial.coreg.estwrite.source(1) = {T1_data.name};
+    matlabbatch{1}.spm.spatial.coreg.estwrite.other = {''};
+    matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.cost_fun = 'nmi';
+    matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.sep = [4 2];
+    matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
+    matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.fwhm = [7 7];
+    matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.interp = 4;
+    matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.wrap = [0 0 0];
+    matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.mask = 0;
+    matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.prefix = 'r';
+    matlabbatch{2}.spm.spatial.preproc.channel.vols(1) = cfg_dep('Coregister: Estimate & Reslice: Coregistered Images', substruct('.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','cfiles'));
+    matlabbatch{2}.spm.spatial.preproc.channel.biasreg = 0.001;
+    matlabbatch{2}.spm.spatial.preproc.channel.biasfwhm = 60;
+    matlabbatch{2}.spm.spatial.preproc.channel.write = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(1).tpm = {'/home/bspl/spm12/tpm/TPM.nii,1'};
+    matlabbatch{2}.spm.spatial.preproc.tissue(1).ngaus = 1;
+    matlabbatch{2}.spm.spatial.preproc.tissue(1).native = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(1).warped = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(2).tpm = {'/home/bspl/spm12/tpm/TPM.nii,2'};
+    matlabbatch{2}.spm.spatial.preproc.tissue(2).ngaus = 1;
+    matlabbatch{2}.spm.spatial.preproc.tissue(2).native = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(2).warped = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(3).tpm = {'/home/bspl/spm12/tpm/TPM.nii,3'};
+    matlabbatch{2}.spm.spatial.preproc.tissue(3).ngaus = 2;
+    matlabbatch{2}.spm.spatial.preproc.tissue(3).native = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(3).warped = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(4).tpm = {'/home/bspl/spm12/tpm/TPM.nii,4'};
+    matlabbatch{2}.spm.spatial.preproc.tissue(4).ngaus = 3;
+    matlabbatch{2}.spm.spatial.preproc.tissue(4).native = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(4).warped = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(5).tpm = {'/home/bspl/spm12/tpm/TPM.nii,5'};
+    matlabbatch{2}.spm.spatial.preproc.tissue(5).ngaus = 4;
+    matlabbatch{2}.spm.spatial.preproc.tissue(5).native = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(5).warped = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(6).tpm = {'/home/bspl/spm12/tpm/TPM.nii,6'};
+    matlabbatch{2}.spm.spatial.preproc.tissue(6).ngaus = 2;
+    matlabbatch{2}.spm.spatial.preproc.tissue(6).native = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(6).warped = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.warp.mrf = 1;
+    matlabbatch{2}.spm.spatial.preproc.warp.cleanup = 1;
+    matlabbatch{2}.spm.spatial.preproc.warp.reg = [0 0.001 0.5 0.05 0.2];
+    matlabbatch{2}.spm.spatial.preproc.warp.affreg = 'mni';
+    matlabbatch{2}.spm.spatial.preproc.warp.fwhm = 0;
+    matlabbatch{2}.spm.spatial.preproc.warp.samp = 3;
+    matlabbatch{2}.spm.spatial.preproc.warp.write = [0 1];
+    %Check parent folder
+    matlabbatch{3}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.parent = {T1_path};
+    matlabbatch{3}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.name = 'CorSeg';
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(1) = cfg_dep('Coregister: Estimate & Reslice: Resliced Images', substruct('.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','rfiles'));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(2) = cfg_dep('Segment: Seg Params', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','param', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(3) = cfg_dep('Segment: c1 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{1}, '.','c', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(4) = cfg_dep('Segment: rc1 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{1}, '.','rc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(5) = cfg_dep('Segment: wc1 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{1}, '.','wc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(6) = cfg_dep('Segment: mwc1 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{1}, '.','mwc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(7) = cfg_dep('Segment: c2 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{2}, '.','c', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(8) = cfg_dep('Segment: rc2 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{2}, '.','rc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(9) = cfg_dep('Segment: wc2 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{2}, '.','wc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(10) = cfg_dep('Segment: mwc2 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{2}, '.','mwc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(11) = cfg_dep('Segment: c3 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{3}, '.','c', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(12) = cfg_dep('Segment: rc3 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{3}, '.','rc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(13) = cfg_dep('Segment: wc3 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{3}, '.','wc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(14) = cfg_dep('Segment: mwc3 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{3}, '.','mwc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(15) = cfg_dep('Segment: c4 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{4}, '.','c', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(16) = cfg_dep('Segment: rc4 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{4}, '.','rc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(17) = cfg_dep('Segment: wc4 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{4}, '.','wc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(18) = cfg_dep('Segment: mwc4 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{4}, '.','mwc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(19) = cfg_dep('Segment: c5 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{5}, '.','c', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(20) = cfg_dep('Segment: rc5 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{5}, '.','rc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(21) = cfg_dep('Segment: wc5 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{5}, '.','wc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(22) = cfg_dep('Segment: mwc5 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{5}, '.','mwc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(23) = cfg_dep('Segment: c6 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{6}, '.','c', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(24) = cfg_dep('Segment: rc6 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{6}, '.','rc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(25) = cfg_dep('Segment: wc6 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{6}, '.','wc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.files(26) = cfg_dep('Segment: mwc6 Images', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{6}, '.','mwc', '()',{':'}));
+    matlabbatch{4}.cfg_basicio.file_dir.file_ops.file_move.action.moveto(1) = cfg_dep('Make Directory: Make Directory ''CorSeg''', substruct('.','val', '{}',{3}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','dir'));
+    %Check parent folder
+    matlabbatch{5}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.parent = {T1_path};
+    matlabbatch{5}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.name = 'BiasFields_Deformations';
+    matlabbatch{6}.cfg_basicio.file_dir.file_ops.file_move.files(1) = cfg_dep('Segment: Bias Field (1)', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','channel', '()',{1}, '.','biasfield', '()',{':'}));
+    matlabbatch{6}.cfg_basicio.file_dir.file_ops.file_move.files(2) = cfg_dep('Segment: Bias Corrected (1)', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','channel', '()',{1}, '.','biascorr', '()',{':'}));
+    matlabbatch{6}.cfg_basicio.file_dir.file_ops.file_move.files(3) = cfg_dep('Segment: Forward Deformations', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','fordef', '()',{':'}));
+    matlabbatch{6}.cfg_basicio.file_dir.file_ops.file_move.action.moveto(1) = cfg_dep('Make Directory: Make Directory ''BiasFields''', substruct('.','val', '{}',{5}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','dir'));
+
+    %%If it fails, you can check the inputs of the files here
+    save spm_corsegbatchtest matlabbatch;
+    spm_jobman('run', matlabbatch);
+
+    
+end
