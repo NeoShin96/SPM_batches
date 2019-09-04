@@ -72,5 +72,12 @@ for i = 1:N
     save spm_realignmenttest matlabbatch;
     spm_jobman('run', matlabbatch);
     
+    %%Selects the graphical data spm_...ps and rename it
+    %%Only works if you open up spm fmri before running script; otherwise comment it out
+    files = dir('spm*.ps');
+    [~, f,ext] = fileparts(files.name);
+    rename = strcat(subject_ID,f,ext) ; 
+    movefile(files.name, rename); 
+    
 end
 
