@@ -1,6 +1,11 @@
-%%MatLab and SPM12
-%%Realignment of fMRI
+%%Required: MatLab, SPM12, fMRI data, and sMRI data (for later steps)
+%%Realignment of fMRI (Step 1, after you do slice-timing)
 %%Only have folder with all fMRI data, not folder with subfolders. That requires different dir coding.
+%%%If you have not noticed, this is is a for-loop for multiple subjects (single 4D NIFTI file per subj.) in one folder.
+%%%Although this is not a usual way to process data (normally you have subfolders and output all data into somewhere else)
+%%%This could be useful for people that are disorganized and still have not learned to distribute data using combination
+%%%of .csv and other python scripts, like me!
+%%%Make sure to keep at least one copy of raw data in a separate folder, just in case
 
 function Realignment_Batch()
 
