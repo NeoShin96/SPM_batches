@@ -1,0 +1,95 @@
+%%Required: MatLab, SPM12, realigned fMRI, and deformation fields of sMRI (y_*** files)
+%%Normalization and Smoothing of fMRI (Step 3, after you do coregistration and segmentation)
+%%We now normalize the fMRI to the same space after using deformation fields to correct motion and other artifacts.
+%%Then we smooth it right after. Whether you smooth before or after ICA is debatable, but generally people do it.
+%%If used for ICA, then delete the parts of smoothing.
+%%Only have folders with all fMRI or sMRI data, not folder with subfolders. That requires different dir coding.
+%%%If you have not noticed, this is is a for-loop for multiple subjects (single 4D NIFTI file per subj.) in two folders.
+%%%Although this is not a usual way to process data (normally you have subfolders and output all data into somewhere else)
+%%%This could be useful for people that are disorganized and still have not learned to distribute data using combination
+%%%of .csv and other python scripts, like me!
+%%%Make sure to keep at least one copy of raw data in a separate folder, just in case
+
+function NormSmooth_Batch()
+%%This script normalizes and smooths fMRI, not sMRI. Don't make that mistake... like... I did...
+%%Just need the realigned fMRI from file R and y_ files from Deformation field folder from previous step
+
+fMRI_path = uigetdir(pwd, 'Select realigned fMRI folder: R folder');
+Deformed_path = uigetdir(pwd, 'Select Deformation fields folder: BiasFields_Deformations');
+%fMRI_path = '/data2/open_data/ADNI/ADNI3_sMRI_rsfMRI_FDGPET/Categorized/CTRL/fMRI/test2_raw/R';
+%Deformed_path = '/data2/open_data/ADNI/ADNI3_sMRI_rsfMRI_FDGPET/Categorized/CTRL/T1/raw/BiasFields_Deformations';
+
+
+%%This makes the path that goes up one directory of fMRI_path path
+idcs   = strfind(fMRI_path,'/');
+Parent_path = fMRI_path(1:idcs(end)-1);
+%disp(Parent_path)
+
+
+%Search for files in fMRI_path directory that starts with r and has *.nii
+fMRI_data_files = dir(fullfile(fMRI_path, filesep, 'r*.nii'));
+
+N = length(fMRI_data_files);
+
+disp("This is the number of files with r*.nii")
+disp(N)
+disp("Now showing files")
+
+spm_jobman('initcfg');
+spm('defaults','FMRI');
+
+for i = 1:N
+    cd(fMRI_path)
+    disp(fMRI_data_files(i));
+    
+    fMRI_baseFileName = fMRI_data_files(i).name;
+    %disp(fMRI_data_files(i).name);
+    fMRI_zFileName = fullfile(fMRI_baseFileName);
+    fMRI_data{1,:} = [fMRI_path, filesep, fMRI_baseFileName];
+    %disp(fMRI_zFileName);
+    %disp(fMRI_data);
+    
+    %%Check this and make sure it's specifically subject name "029_S_4444"
+    subject_ID = fMRI_zFileName(2:11);
+    %disp(subject_ID);
+    
+    %%Check the file name, it is y_ for Deformation field
+    Deformed_data = dir( [Deformed_path, filesep, 'y_', subject_ID, '*.nii'] );
+    disp(Deformed_data);
+    deformation_field{1,:} = [Deformed_path, filesep, Deformed_data.name];
+    %disp(deformation_field)
+    
+    %disp(fMRI_data_files(i).name)
+        
+    %%This looks for filename of fMRI_data_files in current directory
+    matlabbatch{1}.spm.util.exp_frames.files = (fMRI_data);
+    matlabbatch{1}.spm.util.exp_frames.frames = Inf;
+    matlabbatch{2}.spm.spatial.normalise.write.subj.def = (deformation_field);
+    matlabbatch{2}.spm.spatial.normalise.write.subj.resample(1) = cfg_dep('Expand image frames: Expanded filename list.', substruct('.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','files'));
+    matlabbatch{2}.spm.spatial.normalise.write.woptions.bb = [-Inf -Inf -Inf
+                                                              Inf Inf Inf];
+    matlabbatch{2}.spm.spatial.normalise.write.woptions.vox = [2 2 2];
+    matlabbatch{2}.spm.spatial.normalise.write.woptions.interp = 4;
+    matlabbatch{2}.spm.spatial.normalise.write.woptions.prefix = 'w';
+    matlabbatch{3}.spm.spatial.smooth.data(1) = cfg_dep('Normalise: Write: Normalised Images (Subj 1)', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('()',{1}, '.','files'));
+    matlabbatch{3}.spm.spatial.smooth.fwhm = [6 6 6];
+    matlabbatch{3}.spm.spatial.smooth.dtype = 0;
+    matlabbatch{3}.spm.spatial.smooth.im = 0;
+    matlabbatch{3}.spm.spatial.smooth.prefix = 's';
+    matlabbatch{4}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.parent = {Parent_path};
+    matlabbatch{4}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.name = 'WR';
+    matlabbatch{5}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.parent = {Parent_path};
+    matlabbatch{5}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.name = 'SWR';
+    matlabbatch{6}.cfg_basicio.file_dir.file_ops.file_move.files(1) = cfg_dep('Normalise: Write: Normalised Images (Subj 1)', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('()',{1}, '.','files'));
+    matlabbatch{6}.cfg_basicio.file_dir.file_ops.file_move.action.moveto(1) = cfg_dep('Make Directory: Make Directory ''W''', substruct('.','val', '{}',{4}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','dir'));
+    matlabbatch{7}.cfg_basicio.file_dir.file_ops.file_move.files(1) = cfg_dep('Smooth: Smoothed Images', substruct('.','val', '{}',{3}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','files'));
+    matlabbatch{7}.cfg_basicio.file_dir.file_ops.file_move.action.moveto(1) = cfg_dep('Make Directory: Make Directory ''S''', substruct('.','val', '{}',{5}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','dir'));
+
+    %%If error, check this file and look at input.
+    save spm_normsmoothbatchtest matlabbatch;
+    spm_jobman('run', matlabbatch);
+    
+    %}   
+     
+    
+end
