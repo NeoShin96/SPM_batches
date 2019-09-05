@@ -5,9 +5,8 @@
 %%People move. It's impossible to keep them steady. That's why we need deformation field to correct for these distortions.
 %%Only have folders with all fMRI or sMRI data, not folder with subfolders. That requires different dir coding.
 %%%If you have not noticed, this is is a for-loop for multiple subjects (single 4D NIFTI file per subj.) in two folders.
-%%%Although this is not a usual way to process data (normally you have subfolders and output all data into somewhere else)
-%%%This could be useful for people that are disorganized and still have not learned to distribute data using combination
-%%%of .csv and other python scripts, like me!
+%%%Normally you have data in subfolders of multiple 3D NIFTI files per subject, but this is for multiple 4D NIFTI per subject
+%%%In one folder.
 %%%Make sure to keep at least one copy of raw data in a separate folder, just in case
 
 function CorSeg_Batch()
@@ -18,7 +17,7 @@ T1_path = uigetdir(pwd,'Select the folder with the T1 files');
 fMRI_path = uigetdir(pwd,'Select the folder with mean fMRI: R folder');
 
 %T1_path = '/the/directory/with/the/raw/T1/files';
-%fMRI_path = '/data2/open_data/ADNI/ADNI3_sMRI_rsfMRI_FDGPET/Categorized/CTRL/fMRI/test2_raw/R';
+%fMRI_path = '/the/directory/with/the/R/folder/from/previous/step/it/should/be/in/fMRI/R';
 
 
 fMRI_data_files = dir(fullfile(fMRI_path, filesep, '*mean*.nii'));
