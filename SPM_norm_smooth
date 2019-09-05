@@ -5,9 +5,6 @@
 %%If used for ICA, then delete the parts of smoothing.
 %%Only have folders with all fMRI or sMRI data, not folder with subfolders. That requires different dir coding.
 %%%If you have not noticed, this is is a for-loop for multiple subjects (single 4D NIFTI file per subj.) in two folders.
-%%%Although this is not a usual way to process data (normally you have subfolders and output all data into somewhere else)
-%%%This could be useful for people that are disorganized and still have not learned to distribute data using combination
-%%%of .csv and other python scripts, like me!
 %%%Make sure to keep at least one copy of raw data in a separate folder, just in case
 
 function NormSmooth_Batch()
@@ -16,8 +13,8 @@ function NormSmooth_Batch()
 
 fMRI_path = uigetdir(pwd, 'Select realigned fMRI folder: R folder');
 Deformed_path = uigetdir(pwd, 'Select Deformation fields folder: BiasFields_Deformations');
-%fMRI_path = '/data2/open_data/ADNI/ADNI3_sMRI_rsfMRI_FDGPET/Categorized/CTRL/fMRI/test2_raw/R';
-%Deformed_path = '/data2/open_data/ADNI/ADNI3_sMRI_rsfMRI_FDGPET/Categorized/CTRL/T1/raw/BiasFields_Deformations';
+%fMRI_path = '/the/directory/of/R/folder/it/should/be/fMRI/R';
+%Deformed_path = '/the/directory/of/T1/after/previous/step/it/should/be/T1/raw/BiasFields_Deformations';
 
 
 %%This makes the path that goes up one directory of fMRI_path path
