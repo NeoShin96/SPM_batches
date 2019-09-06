@@ -32,6 +32,8 @@ spm('defaults','FMRI');
 
 for i = 1:N
 
+    cd(fMRI_path)
+
     baseFileName = fMRI_data_files(i).name;
     %zFileName = fullfile(baseFileName);
     %disp(zFileName);
@@ -39,7 +41,7 @@ for i = 1:N
     fnms{1,:} = [fMRI_path, filesep, baseFileName];
 
     %%Display the name of the subject
-    %subject_ID = zFileName(1:10);
+    subject_ID = zFileName(1:10);
     %disp(subject_ID);
     xsubjects = ['Now pre-processing[Alignment]: Subject ', subject_ID, '. Subject ', num2str(i),' out of ', num2str(N), ' Subjects.'];
     disp('===================================================================================')
