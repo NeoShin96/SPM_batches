@@ -2,7 +2,7 @@
 %%Coregistration and Segmentation of sMRI (Step 2, after you do realignment)
 %%Purpose of realignment is obvious. Purpose of segmentation is to retrieve deformation field (and bias-correction, but
 %%for this particular pre-processing, we don't use it. It's good to keep it though for other uses.)
-%%People move. It's impossible to keep them steady. That's why we need deformation field to correct for these distortions.
+%%Why do we do this? People move and it's hard to keep them steady. That's why we need deformation field for corrections.
 %%Only have folders with all fMRI or sMRI data, not folder with subfolders. That requires different dir coding.
 %%%If you have not noticed, this is is a for-loop for multiple subjects (single 4D NIFTI file per subj.) in two folders.
 %%%Normally you have data in subfolders of multiple 3D NIFTI files per subject, but this is for multiple 4D NIFTI per subject
@@ -26,7 +26,7 @@ fMRI_data_files = dir(fullfile(fMRI_path, filesep, '*mean*.nii'));
 
 N = length(fMRI_data_files);
 
-disp("This is the number of files with *.nii")
+disp("This is the number of files with mean*.nii")
 disp(N)
 disp("Now showing files")
 
@@ -46,6 +46,11 @@ for i = 1:N
     %%Check this and make sure it's specifically subject name "029_S_4444"
     subject_ID = fMRI_zFileName(5:14);
     %disp(subject_ID);
+    xsubjects = ['Now pre-processing[Normalization and Smoothing]: Subject ', subject_ID, '. Subject ', num2str(i),' out of ', num2str(N), ' Subjects.'];
+    disp('===================================================================================')
+    disp(xsubjects)
+    disp('===================================================================================')
+    disp(fMRI_data_files(i))
     
     %%This is to get the full path file of fMRI
     fnms{1,:} = [fMRI_path, filesep, fMRI_baseFileName];
@@ -145,5 +150,9 @@ for i = 1:N
     save spm_corsegbatchtest matlabbatch;
     spm_jobman('run', matlabbatch);
 
+    %%After you check registration for each subject. I'm still figuring out how to do that as a for loop
+
     
 end
+
+disp('Hey we are done!')
